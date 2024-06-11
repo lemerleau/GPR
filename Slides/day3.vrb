@@ -1,0 +1,13 @@
+\frametitle{RNA Inverse Problem}
+Given a target 3D RNA structure, $\mathcal{S}^*$ of a length $L$ with a set of desired properties, the goal is to find one or many RNA sequences of length $L$ that fold into the target structure $\mathcal{S}^*$. More formally, this is done by solving the following optimization problem:
+	\begin{align*}
+		&\min_\phi I(\phi) \\
+		&\text{where } I(\phi) = || f(\phi) - \mathcal{S}^*|| \text{ and } \phi \in \left \{ A, C, G, U\right\}^L
+	\end{align*}
+	
+	\textbf{Remarks}: A key prerequisite to addressing the RNA inverse problem is a reliable solution to the RNA 3D structure prediction problem, i.e., computing the function $f$.
+	
+	\textbf{Challenge}: Traditionally, predicting a 3D structure of an RNA molecule is done using coarse-grained methods or Finite Element Methods (FEM), which are computationally costly and complex mathematical procedures.
+	
+	\textbf{Idea}: Replace the function $f$ by $\bar{f}_*$
+	

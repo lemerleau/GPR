@@ -1,0 +1,314 @@
+\documentclass[10pt]{beamer}
+\usepackage{tikz}
+\usetheme[progressbar=frametitle]{metropolis}
+\usepackage{appendixnumberbeamer}
+\usepackage{lipsum}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage[scale=2]{ccicons}
+\usepackage{pgfplots}
+\usepgfplotslibrary{dateplot}
+\usepackage{dirtytalk}
+\usefonttheme[onlymath]{serif}
+\usepackage{xspace}
+\usepackage[export]{adjustbox}
+\renewcommand{\familydefault}{\rmdefault}
+%\newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
+%\definecolor{mpigreen}{HTML}{007977}
+%\setbeamercolor{frametitle}{bg=mpigreen}
+\usepackage{array}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\setbeamersize{text margin left=7mm,text margin right=5mm} 
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+	backgroundcolor=\color{backcolour},   
+	commentstyle=\color{codegreen},
+	keywordstyle=\color{magenta},
+	numberstyle=\tiny\color{codegray},
+	stringstyle=\color{codepurple},
+	basicstyle=\ttfamily\footnotesize,
+	breakatwhitespace=false,         
+	breaklines=true,                 
+	captionpos=b,                    
+	keepspaces=true,                 
+	numbers=left,                    
+	numbersep=5pt,                  
+	showspaces=false,                
+	showstringspaces=false,
+	showtabs=false,                  
+	tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\title{GPR and Inverse Problem}
+
+\author{ Dr. Nono Saha}
+\institute{Max Planck Institute for Mathematics in the Sciences\\
+	University of Leipzig/ScaDS.AI \\
+	Lancaster University of Leipzig \\ \\ 
+	\textbf{Sommer 2024}}
+\titlegraphic{
+	
+	\begin{tikzpicture}[overlay,remember picture]
+		\node[right=0.4cm] at (current page.150){
+			\includegraphics[width=3cm]{../images/MPI-Logo.pdf}
+		};
+	\end{tikzpicture}
+	
+	\begin{tikzpicture}[overlay,remember picture]
+		\node[left=0.6cm] at (current page.30){
+			\includegraphics[width=3cm]{../images/Scads-logo.png}
+		};
+	\end{tikzpicture}
+}
+
+%\includegraphics[height=1.2cm]{../images/MPI-Logo.pdf}}
+\begin{document}
+
+
+\maketitle
+%\begin{frame}{Course plan}
+%\frametitle{Table of Contents}
+%\tableofcontents
+%\end{frame}
+
+%\section{Bayesian Optimization method}
+
+\begin{frame}[fragile]{Baysian Opt. and Gaussian Process} 
+	The goal of every optimization algorithm is to identify the minimum (or maximum) of an unknown objective function $f$ in a certain design space $\chi \subset \mathbb{R}^d$,
+	
+	\begin{equation}
+		\mathbf{x}_{min} = \arg \min_{\mathbf{x} \in \chi} f(\mathbf{x})
+	\end{equation}
+	
+	\textbf{Basic idea}: treating the unknown objective as a random function, i.e. a stochastic model on a continuous domain $\mathbf{\chi}$. 
+	
+	
+	A stochastic process $(X_x)_{x\in \chi}$ is a Gaussian process if for any $N$ points $x^{*}_1, \cdots x^{*}_N \in \chi $ the probability of the objective to be equal to $Y=(y_1,\cdots, y_N)$ follows a multivariate Gaussian distribution
+	\begin{equation}
+		P(Y^*) = \frac{1}{(2\pi)^{N/2} |\Sigma|^{1/2}} \exp \left[-\frac{1}{2} (\mathbf{Y} - \mathbf{m})^T \Sigma^{-1} (\mathbf{Y} - \mathbf{m})\right]
+	\end{equation}
+	with a mean vector $\mathbf{m}$ and a covariance matrix  $\Sigma$.
+\end{frame}
+
+\begin{frame}[fragile]{Multivariate Gaussian Theorem} 
+	\textbf{Theorem}(Marginals and conditionals of a MVN). suppose $\mathbf{x} = (x_1, x_2)$ is jointly Gaussian with parameters. 
+	$$ \mathbf{\mu} = \left(\begin{array}{r}
+		\mu_1\\ 
+		\mu_2 
+	\end{array}\right), \Sigma = \left(\begin{array}{rr}
+		\Sigma_{11}& \Sigma_{12}\\ 
+		\Sigma_{21}& \Sigma_{22}\\ 
+	\end{array}\right), \Lambda = \Sigma^{-1} = \left(\begin{array}{rr}
+		\Lambda_{11}& \Lambda_{12}\\ 
+		\Lambda_{21}& \Lambda_{22}\\ 
+	\end{array}\right)$$
+	Then, the marginals are given by 
+	$$ \begin{cases}
+		p(x_1) = \mathcal{N}(x_1| \mu_1, \Sigma_{11}) \\ 
+		p(x_2) = \mathcal{N}(x_2| \mu_2, \Sigma_{22})
+	\end{cases}$$
+	and the posterior conditional is given by
+	$$ p(x_1| x_2) = \mathcal{N} (x_1| \mu_{1|2}, \Sigma_{1|2})$$
+	where $$\mu_{1|2} = \Sigma_{1|2} (\Lambda_{11} \mu_1 - \Lambda_{12}(x_2 - \mu_2))$$ and $$\Sigma_{1|2} = \Sigma_{11} - \Sigma_{12}\Sigma_{22}^{-1} \Sigma_{21} = \Lambda_{11}^-1$$
+\end{frame}
+
+\begin{frame}{GP: a distribution over functions}
+	A GP is a Gaussian distribution over functions defined as: 
+	$$ f(\mathbf{x})  \sim GP (\mathbf{m}(\mathbf{x}), \kappa (\mathbf{x}, \mathbf{x}'))$$
+	where 
+	$$ \begin{cases}
+		\mathbf{m}(\mathbf{x}) = \mathbb{E} [f(\mathbf{x})] \\ 
+		\kappa (\mathbf{x}, \mathbf{x}') = \mathbb{E} \left[(f(\mathbf{x}) - \mathbf{m}(\mathbf{x}))(f(\mathbf{x}') - \mathbf{m}(\mathbf{x}'))^T\right]
+	\end{cases}$$
+	How do you sample such functions? 
+	\begin{enumerate}
+		\item given a set of points $\mathbf{X}_{1:N}$
+		\item Create $\mu = 0_N$ and compute $\mathbf{K} =  \kappa (\mathbf{x}, \mathbf{x})$
+		\item find $\mathbf{L}$ such that $\mathbf{K} = \mathbf{L}\mathbf{L}^T$
+		\item \begin{align*}
+			f^i &\sim \mathcal{N}(\mu, \mathbf{K})\\ 
+			&\sim \mathcal{N}(\mu, \mathbf{I}) \mathbf{L}
+		\end{align*}
+	\end{enumerate}
+	\textbf{Example}: let $\kappa (x, x') = e^{\left(-\frac{1}{2} (x-x')^2\right)}$, write a python code that samples $10$ functions.
+\end{frame}
+
+
+
+%\begin{frame}[fragile]{Gaussian Process Regressors} 
+%Gaussian Process Regression (GPR), often called Gaussian Processes(GP), is a powerful non-parametric method used for regression, classification, and other tasks.
+%	
+%\begin{itemize}
+%	\item GPR is based on the Bayesian inference principle 
+%	\item GPR provide not just the prediction function (as in standard regression methods) but also a measure of uncertainty, which is helpful with inverse design if a choice has to be made between multiple solutions
+%	\item Additionally, for inverse design, the prediction function should be differentiable and easy to compute to utilize gradient-based optimization techniques efficiently
+%\end{itemize}
+%\end{frame}
+
+
+\begin{frame}[fragile]{Mean and Variance Function}
+	In Bayesian methods, a prior is the initial belief about the function to be estimated before observing any data. This prior is updated when data is observed to get a posterior. With GPRs, the prior is defined over functions. Specifically, the prior consists of:
+	
+	\begin{enumerate}
+		\item A mean function $\mathbf{m}(x)$: It is typically set to zero, but in principle, it can be set based on prior knowledge about the data.
+		\item A covariance function $\kappa(\mathbf{x}, \mathbf{x}′)$: The covariance function (or kernel function) represents the belief about the similarity or relationship between data points in the input space.
+	\end{enumerate}
+	\textbf{Remarks}
+	\begin{itemize}
+		\item Once data is observed, the GPR only keeps functions that fit the data points
+		\item This is the posterior, the prior updated with the observed data.
+		\item For regression tasks, the mean function calculated by the posterior distribution of possible functions is the function used for predictions.
+		
+	\end{itemize}
+	
+\end{frame}
+
+\begin{frame}[fragile]{Kernel Functions}  % add fragile to allow using lstlisting in frame
+	Kernel functions (denoted as $\kappa(\mathbf{x}, \mathbf{x}′)$), also known as covariance functions, are central to GPRs.
+	They define the covariance or similarity between points in the input space, governing how function values at different points relate to one another. The kernel's choice affects the GP's ability to capture functions effectively.
+	\begin{enumerate}
+		\item Squared Exponential (SE) or Radial Basis Function (RBF) Kernel
+		$$ \kappa(x, x') = \sigma^2 \exp \left(\frac{||x - x'||^2}{2l^2}\right)$$
+		\item  Matern Kernel
+		
+		$$ \kappa (x, x') =  \frac{1}{\Gamma (v) 2^{v-1}} \left(\sqrt{2v} \frac{||x -x'||}{l}\right)^v K_v \left(\sqrt{2v} \frac{||x -x'||}{l}\right)$$
+		\item White Kernel 
+		$$ \kappa (x, x') = \begin{cases}
+			\sigma^2 & \text{ if } x==x' \\ 
+			0 & \text{else}
+		\end{cases}$$
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}{GP given a set of observed points}
+	Now,  the Gaussian process is a probability distribution over possible functions that fit a set of points.
+	
+	Because we have the probability distribution over all possible functions, we can calculate the means as the function and calculate the variance to show how confident we are when we make predictions using the function.
+	
+	Keep in mind, 
+	\begin{itemize}
+		\item The functions (posterior) update with new observations. 
+		\item The mean calculated by the posterior distribution of the possible functions is the function used for regression.
+	\end{itemize}
+	A multivariable Gaussian models the function as 
+	$$ p(\mathbf{f}| \mathbf{x}) = \mathcal{N} (\mathbf{f}| \mu, \mathbf{K})$$
+	So, we have observations and estimated functions $f$ with these observations. Now, say we have some new points $\mathbf{x}_*$ where we want to predict $f(\mathbf{x}_*)$
+\end{frame}
+
+\begin{frame}{GP given a set of observed points}
+	The joint distribution of $f$ and $f^*$ can be modeled as: 
+	$$\left(\begin{array}{r}
+		\mathbf{f}\\ 
+		\mathbf{f}_*
+	\end{array}\right) \sim \mathcal{N} \left(\left(\begin{array}{r}
+		m(\mathbf{X}) \\ 
+		m(\mathbf{X}_*) 
+	\end{array}\right), \left(\begin{array}{rr}
+		\mathbf{K}& \mathbf{K}_* \\ 
+		\mathbf{K}_*^T& \mathbf{K}_{**} \\
+	\end{array}\right)\right)$$
+	where $\mathbf{K} = \kappa (\mathbf{X}, \mathbf{X}), \mathbf{K}_* = \kappa (\mathbf{X}, \mathbf{X}_*)$ and $\mathbf{K}_{**} = \kappa (\mathbf{X}_*, \mathbf{X}_*)$. 
+	
+	This is modelling a joint distribution $p(\mathbf{f}, \mathbf{f}_*|\mathbf{X}, \mathbf{X}_*)$, but we want the conditional distribution over only, which is $p(\mathbf{f}_*| \mathbf{f}, \mathbf{X}, \mathbf{X}_*)$. 
+	
+	How can we derive the posterior from the joint distribution? 
+	
+	We obtain: $$ \mathbf{f}_*| \mathbf{f}, \mathbf{X}, \mathbf{X}_* \sim \mathcal{N} \left(\mathbf{K}_*^T \mathbf{K}^{-1} \mathbf{f}, \mathbf{K}_{**} - \mathbf{K}^T_* \mathbf{K}^{-1} \mathbf{K}_*\right)$$
+\end{frame}
+
+\begin{frame}{GP given a set of observed points}
+	Now let us consider a more realistic situation where $y = f(x) + \epsilon$, where $\epsilon \sim \mathcal{N}(0, \sigma^2_n)$.
+	
+	The prior on the noisy observations becomes $cov(y) = \mathbf{K} + \sigma_n^2 \mathbf{I}$. 
+	
+	The joint distribution of the observed target values and the function values at the test locations under the prior as 
+	$$\left(\begin{array}{r}
+		\mathbf{y} \\ 
+		\mathbf{f}_*
+	\end{array}\right) \sim \mathcal{N} \left(\mathbf{0}, \left(\begin{array}{rr}
+		\mathbf{K} + \sigma^2_n \mathbf{I}& \mathbf{K}_* \\ 
+		\mathbf{K}_*^T& \mathbf{K}_{**} \\
+	\end{array}\right)\right)$$
+	Deriving the conditional distribution corresponding to our previous equation, we get the following predictive equations
+	$$ \bar{\mathbf{f}} _*|\mathbf{X}, \mathbf{y}, \mathbf{X}_* \sim \mathcal{N} \left(\bar{\mathbf{f}}_*, cov(\mathbf{f}_*)\right) $$
+	where, 
+	\begin{align*}
+		&\bar{\mathbf{f}}_*  = \mathbb{E} \left[ \bar{\mathbf{f}}_* | \mathbf{X}, \mathbf{y}, \mathbf{X}_*\right] = \mathbf{K}_*^T \left[\mathbf{K} + \sigma_y^2 \mathbf{I}\right]^{-1} \mathbf{y} \\ 
+		&cov(\bar{\mathbf{f}}_*)  = \mathbf{K}_{**} - \mathbf{K}_*^T \left[\mathbf{K} + \sigma_y^2 \mathbf{I}\right]^{-1} \mathbf{K}_*
+	\end{align*}
+	
+\end{frame}
+
+
+\begin{frame}[fragile]{GPR Algorithm (Hipster version!)}  % add fragile to allow using lstlisting in frame
+	\textbf{Inputs}: $\mathbf{X}$ (inputs), $\mathbf{y}$ (targets), $\kappa$ (covariance function), $\sigma_n^2$ (noise level), $\mathbf{X}_*$ (test input)
+	\begin{enumerate}
+		\item $\mathbf{K} = \kappa (\mathbf{X}, \mathbf{X})$
+		\item  $\mathbf{v} := (\mathbf{K} + \sigma^2_n \mathbf{I})^{-1} \mathbf{y}$
+		\item $\mathbf{K}_* =  \kappa (\mathbf{X}, \mathbf{X}_*)$
+		\item  $\mathbb{E} [\bar{\mathbf{f}}_*] := \mathbf{K}_*^T \mathbf{v} $
+		\item $\mathbf{K}_{**} =  \kappa (\mathbf{X}_*, \mathbf{X}_*)$
+		\item  $\mathbf{v}_* := (\mathbf{K} + \sigma^2_n \mathbf{I})^{-1} \mathbf{K}_*$
+		\item  $\text{cov}[\bar{\mathbf{f}}_*] = K_{**} - \mathbf{K}^T \mathbf{v}_*$
+		\item $\sigma_{\bar{\mathbf{f}}_*} = \sqrt{\text{diag} \left(\text{cov}[\bar{\mathbf{f}}_*]\right)}$
+	\end{enumerate} 	
+	\textbf{Outputs}: $\mathbb{E} [\bar{\mathbf{f}}_*]$ (mean posterior), $\sigma_{\bar{\mathbf{f}}_*}$ (standard deviation)
+\end{frame}
+
+\begin{frame}[fragile]{GPR Algorithm (Improved version)}  % add fragile to allow using lstlisting in frame
+	\textbf{Inputs}: $\mathbf{X}$ (inputs), $\mathbf{y}$ (targets), $\kappa$ (covariance function), $\sigma_n^2$ (noise level), $\mathbf{x}_*$ (test input)
+	\begin{enumerate}
+		\item $\mathbf{K} = \kappa (\mathbf{X}, \mathbf{X})$
+		\item $\mathbf{L} = \text{cholesky}(\mathbf{K} + \sigma^2_n \mathbf{I})$ 
+		\item $\mathbf{m} = \mathbf{L}^{-1} \mathbf{y}$ 
+		\item $\mathbf{K}_* =  \kappa (\mathbf{X}, \mathbf{X}_*)$
+		\item  $\mathbf{L}_k := \mathbf{L}^{-1} \mathbf{K}_*$
+		\item  $\mathbb{E} [f_*] := \mathbf{L}_k^T \mathbf{m} $
+		\item $\mathbf{K}_{**} =  \kappa (\mathbf{X}_*, \mathbf{X}_*)$
+		\item  $\text{var}[\bar{\mathbf{f}}_*] = \text{diag} \left(\mathbf{K}_{**}\right) - \sum_i L_k^2$
+		\item $\sigma_{\bar{\mathbf{f}}_*} = \sqrt{\text{var}[\bar{\mathbf{f}}_*]}$
+	\end{enumerate} 	
+	\textbf{Outputs}: $\mathbb{E} [\bar{\mathbf{f}}_*]$ (mean posterior), $\sigma_{\bar{\mathbf{f}}_*}$ (standard deviation)
+\end{frame}
+
+\begin{frame}{GP: Summary}
+	\begin{itemize}
+		\item GPR is based on the Bayesian inference principle 
+		\item GPR provide not just the prediction function (as in standard regression methods) but also a measure of uncertainty, which is helpful with inverse design.
+		\item The variance function calculated by the posterior distribution of possible functions quantifies the uncertainty of the predictions made by the GPR.
+		\item The parameters of the kernel are hyperparameters to be tuned, e.g. $\sigma, l$
+		\item What we have seen is know as \textbf{Standard}/\textbf{Plain Gaussian Process}. It has two main constraints:
+		\begin{enumerate}
+			\item The overall computation complexity is $O(N^3), N$, is the dimension of covariance matrix $\mathbf{K}$
+			\item The memory consumption is quadratic
+		\end{enumerate}
+		\item The standard GP loses its efficiency quickly when there are more than $5000$ for CPU and $13000$ data points for GPU. For big datasets, \textbf{sparse GP} is needed.
+	\end{itemize}
+\end{frame}
+\begin{frame}[fragile]{RNA Inverse Problem}
+	Given a target 3D RNA structure, $\mathcal{S}^*$ of a length $L$ with a set of desired properties, the goal is to find one or many RNA sequences of length $L$ that fold into the target structure $\mathcal{S}^*$. More formally, this is done by solving the following optimization problem: 
+	\begin{align*}
+		&\min_\phi I(\phi) \\ 
+		&\text{where } I(\phi) = || f(\phi) - \mathcal{S}^*|| \text{ and } \phi \in \left \{ A, C, G, U\right\}^L
+	\end{align*}
+	
+	\textbf{Remarks}: A key prerequisite to addressing the RNA inverse problem is a reliable solution to the RNA 3D structure prediction problem, i.e., computing the function $f$. 
+	
+	\textbf{Challenge}: Traditionally, predicting a 3D structure of an RNA molecule is done using coarse-grained methods or Finite Element Methods (FEM), which are computationally costly and complex mathematical procedures.  
+	
+	\textbf{Idea}: Replace the function $f$ by $\bar{f}_*$ 
+	
+\end{frame}
+
+
+\end{document}
