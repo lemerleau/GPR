@@ -11,6 +11,7 @@
 \usepgfplotslibrary{dateplot}
 \usepackage{dirtytalk}
 \usefonttheme[onlymath]{serif}
+\usepackage{bm}
 \usepackage{xspace}
 \usepackage[export]{adjustbox}
 \renewcommand{\familydefault}{\rmdefault}
@@ -95,35 +96,35 @@
 	
 	A stochastic process $(X_x)_{x\in \chi}$ is a Gaussian process if for any $N$ points $x^{*}_1, \cdots x^{*}_N \in \chi $ the probability of the objective to be equal to $Y=(y_1,\cdots, y_N)$ follows a multivariate Gaussian distribution
 	\begin{equation}
-		P(Y^*) = \frac{1}{(2\pi)^{N/2} |\Sigma|^{1/2}} \exp \left[-\frac{1}{2} (\mathbf{Y} - \mathbf{m})^T \Sigma^{-1} (\mathbf{Y} - \mathbf{m})\right]
+		P(Y^*) = \frac{1}{(2\pi)^{N/2} |\bm{\Sigma}|^{1/2}} \exp \left[-\frac{1}{2} (\mathbf{Y} - \mathbf{m})^T \bm{\Sigma}^{-1} (\mathbf{Y} - \mathbf{m})\right]
 	\end{equation}
-	with a mean vector $\mathbf{m}$ and a covariance matrix  $\Sigma$.
+	with a mean vector $\mathbf{m}$ and a covariance matrix  $\bm{\Sigma}$.
 \end{frame}
 
-\begin{frame}[fragile]{Multivariate Gaussian Theorem} 
-	\textbf{Theorem}(Marginals and conditionals of a MVN). suppose $\mathbf{x} = (x_1, x_2)$ is jointly Gaussian with parameters. 
-	$$ \mathbf{\mu} = \left(\begin{array}{r}
-		\mu_1\\ 
-		\mu_2 
-	\end{array}\right), \Sigma = \left(\begin{array}{rr}
-		\Sigma_{11}& \Sigma_{12}\\ 
-		\Sigma_{21}& \Sigma_{22}\\ 
-	\end{array}\right), \Lambda = \Sigma^{-1} = \left(\begin{array}{rr}
+\begin{frame}[fragile]{Multivariate Gaussian Theorem \footnote{Christopher M. Bishop F.R.Eng, Pattern Recognition andMachine Learning, Spring 2006.}} 
+	\textbf{Theorem} (Marginals and conditionals of a MVN). Suppose $\mathbf{x} = (x_1, x_2)$ is jointly Gaussian with parameters. 
+	$$ \bm{\mu} = \left(\begin{array}{r}
+		\bm{\mu}_1\\ 
+		\bm{\mu}_2 
+	\end{array}\right), \bm{\Sigma} = \left(\begin{array}{rr}
+		\bm{\Sigma}_{11}& \bm{\Sigma}_{12}\\ 
+		\bm{\Sigma}_{21}& \bm{\Sigma}_{22}\\ 
+	\end{array}\right), \bm{\Lambda} = \bm{\Sigma} ^{-1} = \left(\begin{array}{rr}
 		\Lambda_{11}& \Lambda_{12}\\ 
 		\Lambda_{21}& \Lambda_{22}\\ 
 	\end{array}\right)$$
 	Then, the marginals are given by 
 	$$ \begin{cases}
-		p(x_1) = \mathcal{N}(x_1| \mu_1, \Sigma_{11}) \\ 
-		p(x_2) = \mathcal{N}(x_2| \mu_2, \Sigma_{22})
+		p(x_1) = \mathcal{N}(x_1| \bm{\mu}_1, \bm{\Sigma} _{11}) \\ 
+		p(x_2) = \mathcal{N}(x_2|\bm{\mu}_2,\bm{\Sigma} _{22})
 	\end{cases}$$
 	and the posterior conditional is given by
-	$$ p(x_1| x_2) = \mathcal{N} (x_1| \mu_{1|2}, \Sigma_{1|2})$$
-	where $$\mu_{1|2} = \Sigma_{1|2} (\Lambda_{11} \mu_1 - \Lambda_{12}(x_2 - \mu_2))$$ and $$\Sigma_{1|2} = \Sigma_{11} - \Sigma_{12}\Sigma_{22}^{-1} \Sigma_{21} = \Lambda_{11}^-1$$
+	$$ p(x_1| x_2) = \mathcal{N} (x_1| \bm{\mu}_{1|2}, \bm{\Sigma} _{1|2})$$
+	where $$\bm{\mu}_{1|2} =\bm{\Sigma}_{1|2} (\Lambda_{11} \bm{\mu}_1 - \Lambda_{12}(x_2 - \bm{\mu}_2))$$ and $$\bm{\Sigma} _{1|2} = \bm{\Sigma}_{11} -\bm{\Sigma}_{12}\bm{\Sigma} _{22}^{-1} \bm{\Sigma}_{21} = \Lambda_{11}^-1$$
 \end{frame}
 
-\begin{frame}{GP: a distribution over functions}
-	A GP is a Gaussian distribution over functions defined as: 
+\begin{frame}{Gaussian Processes (GP)}
+	GP is a Gaussian distribution over functions defined as: 
 	$$ f(\mathbf{x})  \sim GP (\mathbf{m}(\mathbf{x}), \kappa (\mathbf{x}, \mathbf{x}'))$$
 	where 
 	$$ \begin{cases}
@@ -133,7 +134,7 @@
 	How do you sample such functions? 
 	\begin{enumerate}
 		\item given a set of points $\mathbf{X}_{1:N}$
-		\item Create $\mu = 0_N$ and compute $\mathbf{K} =  \kappa (\mathbf{x}, \mathbf{x})$
+		\item Create $\mu = \bm{0}_N$ and compute $\mathbf{K} =  \kappa (\mathbf{x}, \mathbf{x})$
 		\item find $\mathbf{L}$ such that $\mathbf{K} = \mathbf{L}\mathbf{L}^T$
 		\item \begin{align*}
 			f^i &\sim \mathcal{N}(\mu, \mathbf{K})\\ 
@@ -265,7 +266,7 @@
 	\textbf{Outputs}: $\mathbb{E} [\bar{\mathbf{f}}_*]$ (mean posterior), $\sigma_{\bar{\mathbf{f}}_*}$ (standard deviation)
 \end{frame}
 
-\begin{frame}[fragile]{GPR Algorithm (Improved version)}  % add fragile to allow using lstlisting in frame
+\begin{frame}[fragile]{GPR Algorithm (Improved version)\footnote{C. E. Rasmussen and C. K. I. Williams, Gaussian Processes for Machine Learning, the MIT Press, 2006.}}  % add fragile to allow using lstlisting in frame
 	\textbf{Inputs}: $\mathbf{X}$ (inputs), $\mathbf{y}$ (targets), $\kappa$ (covariance function), $\sigma_n^2$ (noise level), $\mathbf{x}_*$ (test input)
 	\begin{enumerate}
 		\item $\mathbf{K} = \kappa (\mathbf{X}, \mathbf{X})$
@@ -279,6 +280,7 @@
 		\item $\sigma_{\bar{\mathbf{f}}_*} = \sqrt{\text{var}[\bar{\mathbf{f}}_*]}$
 	\end{enumerate} 	
 	\textbf{Outputs}: $\mathbb{E} [\bar{\mathbf{f}}_*]$ (mean posterior), $\sigma_{\bar{\mathbf{f}}_*}$ (standard deviation)
+	\vspace*{1cm}
 \end{frame}
 
 \begin{frame}{GP: Summary}
